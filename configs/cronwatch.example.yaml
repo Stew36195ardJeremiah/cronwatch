@@ -1,34 +1,26 @@
 # cronwatch example configuration
-# Copy to cronwatch.yaml and adjust to your environment.
+# Copy to cronwatch.yaml and adjust as needed.
 
-log_level: info          # debug | info | warn | error
-state_file: /var/lib/cronwatch/state.json
+check_interval: 60s   # How often cronwatch polls for overdue jobs
 
-smtp:
-  host: smtp.example.com
-  port: 587
-  username: alerts@example.com
-  password: "s3cr3t"
-  from: cronwatch@example.com
+alerts:
+  # Log notifier is always enabled by default.
+  # Optionally configure a Slack webhook for notifications:
+  slack_webhook_url: ""   # e.g. https://hooks.slack.com/services/XXX/YYY/ZZZ
 
 jobs:
-  # Daily database backup — must finish within 45 minutes.
-  - name: db-backup
-    schedule: "0 2 * * *"       # cron expression (UTC)
-    max_duration: 45m
-    drift_threshold: 10m        # alert if job starts >10m late
-    alert_email: ops@example.com
+  - name: daily-backup
+    schedule: "0 2 * * *"   # Every day at 02:00
+    tolerance: 10m           # Allow up to 10 minutes of drift
 
-  # Hourly log rotation — lightweight, should finish in under 2 minutes.
-  - name: log-rotate
-    schedule: "0 * * * *"
-    max_duration: 2m
-    drift_threshold: 3m
-    alert_email: ops@example.com
+  - name: hourly-cleanup
+    schedule: "0 * * * *"   # Every hour
+    tolerance: 5m
 
-  # Weekly report generation.
   - name: weekly-report
-    schedule: "0 6 * * 1"       # Every Monday at 06:00 UTC
-    max_duration: 1h
-    drift_threshold: 15m
-    alert_email: reports@example.com
+    schedule: "0 9 * * 1"   # Every Monday at 09:00
+    tolerance: 30m
+
+  - name: heartbeat
+    schedule: "*/5 * * * *" # Every 5 minutes
+    tolerance: 2m
