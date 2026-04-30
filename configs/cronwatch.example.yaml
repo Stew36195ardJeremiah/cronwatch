@@ -12,6 +12,7 @@ jobs:
   - name: daily-backup
     schedule: "0 2 * * *"   # Every day at 02:00
     tolerance: 10m           # Allow up to 10 minutes of drift
+    # grace_period: 5m       # Optional: suppress alerts for this long after a missed run
 
   - name: hourly-cleanup
     schedule: "0 * * * *"   # Every hour
@@ -24,3 +25,4 @@ jobs:
   - name: heartbeat
     schedule: "*/5 * * * *" # Every 5 minutes
     tolerance: 2m
+    # enabled: false         # Set to false to temporarily disable monitoring for a job
