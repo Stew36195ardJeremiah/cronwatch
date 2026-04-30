@@ -2,7 +2,6 @@ package alert
 
 import (
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -14,67 +13,53 @@ const (
 	LevelError Level = "ERROR"
 )
 
-// Alert holds information about a triggered alert.
+// Alert holds the details of a single alert event.
 type Alert struct {
-	JobName   string
-	Level     Level
-	Message   string
-	Timestamp time.Time
+	Job     string
+	Message string
+	Level   Level
+	Time    time.Time
 }
 
-// Notifier is the interface for sending alerts.
+// Notifier is the interface implemented by all alert backends.
 type Notifier interface {
 	Send(a Alert) error
 }
 
-// LogNotifier sends alerts to the standard logger.
-type LogNotifier struct{}
-
-// Send logs the alert to stdout.
-func (l *LogNotifier) Send(a Alert) error {
-	log.Printf("[%s] [%s] %s — %s\n",
-		a.Timestamp.Format(time.RFC3339),
-		a.Level,
-		a.JobName,
-		a.Message,
-	)
-	return nil
-}
-
-// Manager dispatches alerts through one or more Notifiers.
+// Manager dispatches alerts to one or more notifiers.
 type Manager struct {
 	notifiers []Notifier
 }
 
-// NewManager creates a Manager with the provided notifiers.
-// If none are supplied, a LogNotifier is used by default.
+// NewManager creates a Manager. If no notifiers are provided, a
+// default LogNotifier writing to stdout is added.
 func NewManager(notifiers ...Notifier) *Manager {
 	if len(notifiers) == 0 {
-		notifiers = []Notifier{&LogNotifier{}}
+		notifiers = []Notifier{NewLogNotifier(nil)}
 	}
 	return &Manager{notifiers: notifiers}
 }
 
-// Warn dispatches a warning-level alert.
-func (m *Manager) Warn(jobName, format string, args ...interface{}) {
-	m.dispatch(LevelWarn, jobName, fmt.Sprintf(format, args...))
+// AddNotifier appends a notifier to the manager.
+func (m *Manager) AddNotifier(n Notifier) {
+	m.notifiers = append(m.notifiers, n)
 }
 
-// Error dispatches an error-level alert.
-func (m *Manager) Error(jobName, format string, args ...interface{}) {
-	m.dispatch(LevelError, jobName, fmt.Sprintf(format, args...))
+// Warn dispatches a warning-level alert for the named job.
+func (m *Manager) Warn(job, message string) {
+	m.dispatch(Alert{Job: job, Message: message, Level: LevelWarn, Time: time.Now()})
 }
 
-func (m *Manager) dispatch(level Level, jobName, message string) {
-	a := Alert{
-		JobName:   jobName,
-		Level:     level,
-		Message:   message,
-		Timestamp: time.Now().UTC(),
-	}
+// Error dispatches an error-level alert for the named job.
+func (m *Manager) Error(job, message string) {
+	m.dispatch(Alert{Job: job, Message: message, Level: LevelError, Time: time.Now()})
+}
+
+// dispatch sends the alert to every registered notifier, logging failures.
+func (m *Manager) dispatch(a Alert) {
 	for _, n := range m.notifiers {
 		if err := n.Send(a); err != nil {
-			log.Printf("alert notifier error: %v", err)
+			fmt.Printf("cronwatch: alert dispatch error: %v\n", err)
 		}
 	}
 }

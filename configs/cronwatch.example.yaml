@@ -1,28 +1,27 @@
 # cronwatch example configuration
-# Copy to cronwatch.yaml and adjust as needed.
-
-check_interval: 60s   # How often cronwatch polls for overdue jobs
 
 alerts:
-  # Log notifier is always enabled by default.
-  # Optionally configure a Slack webhook for notifications:
-  slack_webhook_url: ""   # e.g. https://hooks.slack.com/services/XXX/YYY/ZZZ
+  # Log notifier is always active.
+  # Uncomment and fill in to enable Slack alerts.
+  # slack:
+  #   webhook_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+
+  # Uncomment and fill in to enable PagerDuty alerts.
+  # pagerduty:
+  #   integration_key: "your-pagerduty-integration-key"
 
 jobs:
   - name: daily-backup
-    schedule: "0 2 * * *"   # Every day at 02:00
-    tolerance: 10m           # Allow up to 10 minutes of drift
-    # grace_period: 5m       # Optional: suppress alerts for this long after a missed run
+    schedule: "0 2 * * *"   # every day at 02:00
+    timeout: 30m
+    drift_threshold: 10m
 
-  - name: hourly-cleanup
-    schedule: "0 * * * *"   # Every hour
-    tolerance: 5m
+  - name: hourly-sync
+    schedule: "0 * * * *"   # every hour
+    timeout: 5m
+    drift_threshold: 2m
 
   - name: weekly-report
-    schedule: "0 9 * * 1"   # Every Monday at 09:00
-    tolerance: 30m
-
-  - name: heartbeat
-    schedule: "*/5 * * * *" # Every 5 minutes
-    tolerance: 2m
-    # enabled: false         # Set to false to temporarily disable monitoring for a job
+    schedule: "0 9 * * 1"   # every Monday at 09:00
+    timeout: 1h
+    drift_threshold: 15m
