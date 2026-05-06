@@ -15,13 +15,17 @@ jobs:
     schedule: "0 2 * * *"   # every day at 02:00
     timeout: 30m
     drift_threshold: 10m
+    # Optional: command to run. If omitted, cronwatch only monitors execution.
+    # command: "/usr/local/bin/backup.sh"
 
   - name: hourly-sync
     schedule: "0 * * * *"   # every hour
     timeout: 5m
     drift_threshold: 2m
+    # command: "/usr/local/bin/sync.sh"
 
   - name: weekly-report
     schedule: "0 9 * * 1"   # every Monday at 09:00
     timeout: 1h
     drift_threshold: 15m
+    # command: "/usr/local/bin/report.sh"
