@@ -2,59 +2,42 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
-	"github.com/cronwatch/cronwatch/internal/monitor"
+	"github.com/user/cronwatch/internal/monitor"
 )
 
-// RunLogProvider is satisfied by *monitor.RunLog.
-type RunLogProvider interface {
-	All() []monitor.RunLogEntry
-	ForJob(name string) []monitor.RunLogEntry
-}
-
 type runLogHandler struct {
-	log RunLogProvider
+	log *monitor.RunLog
 }
 
-func newRunLogHandler(log RunLogProvider) *runLogHandler {
+func newRunLogHandler(log *monitor.RunLog) http.Handler {
 	return &runLogHandler{log: log}
 }
 
-// handleRunLog serves GET /runlog[?job=<name>]
-// Returns all entries or entries filtered by job name.
-func (h *runLogHandler) handleRunLog(w http.ResponseWriter, r *http.Request) {
+func (h *runLogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	jobName := r.URL.Query().Get("job")
-
-	var entries []monitor.RunLogEntry
-	if jobName != "" {
-		entries = h.log.ForJob(jobName)
-	} else {
-		entries = h.log.All()
+	job := r.URL.Query().Get("job")
+	if job == "" {
+		http.Error(w, "missing required query param: job", http.StatusBadRequest)
+		return
 	}
 
-	type responseEntry struct {
-		JobName   string  `json:"job"`
-		StartedAt string  `json:"started_at"`
-		DurationMs float64 `json:"duration_ms"`
-		Success   bool    `json:"success"`
-		Message   string  `json:"message,omitempty"`
-	}
+	entries := h.log.ForJob(job)
 
-	result := make([]responseEntry, len(entries))
-	for i, e := range entries {
-		result[i] = responseEntry{
-			JobName:    e.JobName,
-			StartedAt:  e.StartedAt.UTC().Format("2006-01-02T15:04:05Z"),
-			DurationMs: float64(e.Duration.Milliseconds()),
-			Success:    e.Success,
-			Message:    e.Message,
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if n, err := strconv.Atoi(limitStr); err == nil && n > 0 && n < len(entries) {
+			entries = entries[len(entries)-n:]
 		}
 	}
 
-	writeJSON(w, http.StatusOK, result)
+	if entries == nil {
+		entries = []monitor.RunEntry{}
+	}
+
+	writeJSON(w, http.StatusOK, entries)
 }
