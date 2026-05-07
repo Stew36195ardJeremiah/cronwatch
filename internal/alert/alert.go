@@ -55,6 +55,18 @@ func (m *Manager) Error(job, message string) {
 	m.dispatch(Alert{Job: job, Message: message, Level: LevelError, Time: time.Now()})
 }
 
+// Warnf dispatches a warning-level alert for the named job using a
+// printf-style format string.
+func (m *Manager) Warnf(job, format string, args ...any) {
+	m.Warn(job, fmt.Sprintf(format, args...))
+}
+
+// Errorf dispatches an error-level alert for the named job using a
+// printf-style format string.
+func (m *Manager) Errorf(job, format string, args ...any) {
+	m.Error(job, fmt.Sprintf(format, args...))
+}
+
 // dispatch sends the alert to every registered notifier, logging failures.
 func (m *Manager) dispatch(a Alert) {
 	for _, n := range m.notifiers {
