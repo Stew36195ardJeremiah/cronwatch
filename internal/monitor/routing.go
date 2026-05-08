@@ -81,3 +81,22 @@ func (r *RoutingStore) Default() string {
 	defer r.mu.RUnlock()
 	return r.defaultChannel
 }
+
+// SetBulk assigns channels to multiple jobs at once. It returns the first
+// validation error encountered, leaving any previously applied rules in place.
+func (r *RoutingStore) SetBulk(rules []RouteRule) error {
+	for _, rule := range rules {
+		if rule.Job == "" {
+			return fmt.Errorf("job name must not be empty")
+		}
+		if rule.Channel == "" {
+			return fmt.Errorf("channel must not be empty for job %q", rule.Job)
+		}
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, rule := range rules {
+		r.routes[rule.Job] = rule.Channel
+	}
+	return nil
+}
